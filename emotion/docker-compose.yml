@@ -1,0 +1,18 @@
+version: '3'
+services:
+  flask-app:
+    image: fernando581/flask-face-analysis:latest
+    ports:
+      - "5000:5000"
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    networks:
+      - app-network
+
+networks:
+  app-network:

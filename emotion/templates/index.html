@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis Facial Elegante</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-pink-50 min-h-screen">
+    <div class="container mx-auto px-6 py-12">
+        <h1 class="text-4xl font-extrabold text-center mb-8 text-pink-600 font-serif">Análisis Facial Inteligente</h1>
+
+        <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-8 border-2 border-pink-200">
+            <!-- File Upload Section -->
+            <div class="mb-8 text-center">
+                <h2 class="text-2xl font-serif font-semibold mb-6 text-pink-700">Sube tu foto para analizar</h2>
+                <form id="uploadForm" class="space-y-4">
+                    <!-- Selector de archivo -->
+                    <label class="flex flex-col w-full h-40 border-4 border-dashed border-pink-300 hover:border-pink-400 rounded-2xl cursor-pointer transition-colors duration-300">
+                        <div class="flex flex-col items-center justify-center py-6">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-pink-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                            </svg>
+                            <p class="mt-2 text-pink-600">Haz clic para elegir una imagen</p>
+                            <p class="text-sm text-pink-400">(Formato .jpg o .png)</p>
+                        </div>
+                        <input type="file" class="opacity-0" name="file" accept=".jpg,.jpeg,.png" />
+                    </label>
+
+                    <!-- Botón de envío -->
+                    <button type="submit" class="w-full px-6 py-3 text-white bg-pink-500 rounded-xl hover:bg-pink-600 focus:outline-none focus:ring-2 focus:ring-pink-300 focus:ring-opacity-75 transition-colors duration-300 font-semibold">
+                        Analizar Imagen
+                    </button>
+                </form>
+            </div>
+
+            <!-- Results Section -->
+            <div id="results" class="hidden">
+                <h2 class="text-2xl font-serif font-semibold mb-4 text-pink-700">Tu resultado</h2>
+                <div class="border border-pink-200 rounded-xl p-4 bg-pink-50">
+                    <img id="resultImage" class="max-w-full h-auto mx-auto rounded-lg" src="" alt="Resultado del Análisis">
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading" class="hidden">
+                <div class="flex items-center justify-center py-6">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div id="error" class="hidden mt-4 p-4 bg-red-100 border border-red-300 text-red-700 rounded-xl text-center">
+            </div>
+
+            <!-- Existing Images Section -->
+            {% if images %}
+            <div class="mt-10">
+                <h2 class="text-2xl font-serif font-semibold mb-4 text-pink-700">Imágenes anteriores</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {% for image in images %}
+                    <div class="relative group">
+                        <img src="{{ url_for('uploaded_file', filename=image) }}" 
+                             alt="{{ image }}" 
+                             class="w-full h-32 object-cover rounded-xl cursor-pointer hover:opacity-75 transition-opacity shadow-sm"
+                             onclick="analyzeExisting('{{ image }}')">
+                        <div class="absolute bottom-0 left-0 right-0 bg-white bg-opacity-90 text-pink-600 text-xs p-2 rounded-b-xl truncate">
+                            {{ image }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Manejar la subida de nuevas imágenes
+        $('#uploadForm').submit(function (e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            formData.append('operation', 'original'); // Solo mostrar original
+            showLoading();
+
+            $.ajax({
+                url: '/analyze',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    hideLoading();
+                    $('#results').removeClass('hidden');
+                    $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
+                },
+                error: function (xhr) {
+                    hideLoading();
+                    $('#error')
+                        .removeClass('hidden')
+                        .text(xhr.responseJSON?.error || 'Ha ocurrido un error al procesar tu imagen');
+                }
+            });
+        });
+
+        // Manejar el análisis de imágenes existentes
+        function analyzeExisting(filename) {
+            showLoading();
+
+            const formData = new FormData();
+            formData.append('existing_file', filename);
+            formData.append('operation', 'original'); // Solo mostrar original
+
+            $.ajax({
+                url: '/analyze',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    hideLoading();
+                    $('#results').removeClass('hidden');
+                    $('#resultImage').attr('src', 'data:image/png;base64,' + response.image);
+                },
+                error: function (xhr) {
+                    hideLoading();
+                    $('#error')
+                        .removeClass('hidden')
+                        .text(xhr.responseJSON?.error || 'Ha ocurrido un error al procesar tu imagen');
+                }
+            });
+        }
+
+        // Mostrar/ocultar la animación de carga
+        function showLoading() {
+            $('#loading').removeClass('hidden');
+            $('#results, #error').addClass('hidden');
+        }
+
+        function hideLoading() {
+            $('#loading').addClass('hidden');
+        }
+    </script>
+</body>
+</html>
