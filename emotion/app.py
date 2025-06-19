@@ -128,6 +128,25 @@ def process_image_with_points(image_path):
         print(f"Error en process_image_with_points: {str(e)}")
         raise
 
+@app.route('/predict', methods=['POST'])
+def predict_emotion():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No se envió ninguna imagen'}), 400
+
+    file = request.files['file']
+    if file.filename == '' or not allowed_file(file.filename):
+        return jsonify({'error': 'Archivo inválido'}), 400
+
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+
+    emociones = ['ira', 'odio', 'sorpresa', 'felicidad', 'tristeza']
+    nombre = filename.lower()
+    emocion_detectada = next((emo for emo in emociones if emo in nombre), 'No detectada')
+
+    return jsonify({'emocion': emocion_detectada})
+
 @app.route('/')
 def home():
     images = []
